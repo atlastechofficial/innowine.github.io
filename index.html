@@ -1,0 +1,1260 @@
+<!DOCTYPE html>
+<html lang="ru" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>innowine — Энциклопедия и Дневник Виноделия</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Yandex Maps JS API -->
+    <script src="https://api-maps.yandex.ru/2.1/?lang=ru_RU" type="text/javascript"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        wine: {
+                            50: '#fdf2f4',
+                            100: '#fbe8ec',
+                            500: '#9b2c47',
+                            600: '#821d37',
+                            700: '#6b152c',
+                            900: '#4a0d1e',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Apple-style smooth glassmorphism and custom scrollbars */
+        .glass {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+        .glass-dark {
+            background: rgba(24, 24, 27, 0.85);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f5;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        #map {
+            height: 500px;
+            width: 100%;
+            border-radius: 1.5rem;
+            z-index: 1;
+        }
+    </style>
+</head>
+<body class="bg-[#f5f5f7] text-[#1d1d1f] font-sans antialiased min-h-screen flex flex-col selection:bg-wine-500 selection:text-white">
+
+    <!-- Age Verification Modal -->
+    <div id="ageModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xl px-4 transition-opacity duration-300">
+        <div class="glass max-w-md w-full rounded-3xl p-8 shadow-2xl border border-white/20 text-center transform transition-all">
+            <div class="w-16 h-16 bg-wine-50 text-wine-600 rounded-2xl flex items-center justify-center mx-auto mb-6 text-2xl shadow-inner">
+                <i class="fa-solid fa-wine-glass-empty"></i>
+            </div>
+            <h2 class="text-2xl font-bold tracking-tight text-gray-900 mb-2">Добро пожаловать в innowine</h2>
+            <p class="text-gray-500 text-sm mb-6 leading-relaxed">
+                В соответствии с законодательством, материалы сайта предназначены для лиц достигших совершеннолетия. Вам исполнилось 18 лет?
+            </p>
+            <div class="flex gap-3">
+                <button onclick="verifyAge(false)" class="flex-1 py-3 px-4 rounded-xl border border-gray-200 text-gray-700 font-medium hover:bg-gray-100 transition">
+                    Нет
+                </button>
+                <button onclick="verifyAge(true)" class="flex-1 py-3 px-4 rounded-xl bg-wine-600 text-white font-medium hover:bg-wine-700 shadow-lg shadow-wine-600/30 transition">
+                    Да, мне есть 18
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom Notification Modal (No alert/confirm) -->
+    <div id="customModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 backdrop-blur-sm px-4">
+        <div class="bg-white max-w-sm w-full rounded-2xl p-6 shadow-2xl text-center">
+            <div id="modalIcon" class="w-12 h-12 rounded-full bg-wine-50 text-wine-600 flex items-center justify-center mx-auto mb-4 text-xl">
+                <i class="fa-solid fa-info"></i>
+            </div>
+            <h3 id="modalTitle" class="text-lg font-bold text-gray-900 mb-2">Уведомление</h3>
+            <p id="modalText" class="text-gray-600 text-sm mb-6"></p>
+            <button onclick="closeModal()" class="w-full py-2.5 px-4 rounded-xl bg-gray-900 text-white font-medium hover:bg-gray-800 transition">
+                Понятно
+            </button>
+        </div>
+    </div>
+
+    <!-- Navigation Header -->
+    <header class="sticky top-0 z-40 glass border-b border-gray-200/60">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-wine-600 to-wine-800 text-white flex items-center justify-center shadow-md shadow-wine-600/20">
+                    <i class="fa-solid fa-wine-glass text-lg"></i>
+                </div>
+                <span class="text-xl font-bold tracking-tight bg-gradient-to-r from-wine-700 to-wine-900 bg-clip-text text-transparent">innowine</span>
+            </div>
+            
+            <!-- Navigation Tabs -->
+            <nav class="hidden md:flex items-center gap-1 bg-gray-200/50 p-1 rounded-full border border-gray-200/80">
+                <button onclick="switchTab('home')" id="nav-home" class="nav-btn px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide transition-all bg-white text-gray-900 shadow-sm">Главная</button>
+                <button onclick="switchTab('sommelier')" id="nav-sommelier" class="nav-btn px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide transition-all text-gray-600 hover:text-gray-900">AI Сомелье</button>
+                <button onclick="switchTab('journal')" id="nav-journal" class="nav-btn px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide transition-all text-gray-600 hover:text-gray-900">Дневник</button>
+                <button onclick="switchTab('map')" id="nav-map" class="nav-btn px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide transition-all text-gray-600 hover:text-gray-900">Винная карта</button>
+                <button onclick="switchTab('tips')" id="nav-tips" class="nav-btn px-4 py-1.5 rounded-full text-xs font-semibold tracking-wide transition-all text-gray-600 hover:text-gray-900">Советы</button>
+            </nav>
+
+            <!-- Telegram Quick Access Button -->
+            <a href="https://t.me/ai_sommelierbot" target="_blank" class="hidden sm:inline-flex items-center gap-2 bg-[#229ED9] hover:bg-[#1e8dbd] text-white text-xs font-semibold px-4 py-2 rounded-full shadow-md shadow-blue-500/20 transition-all transform hover:scale-105">
+                <i class="fa-brands fa-telegram text-base"></i>
+                <span>Бот в Telegram</span>
+            </a>
+
+            <!-- Mobile Menu Toggle -->
+            <button onclick="toggleMobileMenu()" class="md:hidden p-2 rounded-xl text-gray-600 hover:bg-gray-100">
+                <i class="fa-solid fa-bars text-xl"></i>
+            </button>
+        </div>
+        <!-- Mobile Dropdown -->
+        <div id="mobileMenu" class="hidden md:hidden glass border-b border-gray-200 px-4 py-3 space-y-2">
+            <button onclick="switchTab('home'); toggleMobileMenu()" class="block w-full text-left px-3 py-2 rounded-lg text-sm font-medium hover:bg-gray-100">Главная</button>
+            <button onclick="switchTab('sommelier'); toggleMobileMenu()" class="block w-full text-left px-3 py-2 rounded-lg text-sm font-medium hover:bg-gray-100">AI Сомелье</button>
+            <button onclick="switchTab('journal'); toggleMobileMenu()" class="block w-full text-left px-3 py-2 rounded-lg text-sm font-medium hover:bg-gray-100">Дневник дегустатора</button>
+            <button onclick="switchTab('map'); toggleMobileMenu()" class="block w-full text-left px-3 py-2 rounded-lg text-sm font-medium hover:bg-gray-100">Винная карта</button>
+            <button onclick="switchTab('tips'); toggleMobileMenu()" class="block w-full text-left px-3 py-2 rounded-lg text-sm font-medium hover:bg-gray-100">Полезные советы</button>
+            <a href="https://t.me/ai_sommelierbot" target="_blank" class="flex items-center justify-center gap-2 w-full py-2 bg-[#229ED9] text-white rounded-lg text-sm font-medium">
+                <i class="fa-brands fa-telegram"></i> Бот в Telegram
+            </a>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+        <!-- TAB 1: HOME -->
+        <section id="tab-home" class="tab-content space-y-12 animate-fadeIn">
+            <!-- Hero Apple Style Banner -->
+            <div class="relative overflow-hidden rounded-3xl bg-gradient-to-r from-gray-900 via-wine-900 to-gray-900 text-white p-8 sm:p-16 shadow-2xl">
+                <div class="absolute inset-0 opacity-25 bg-[radial-gradient(#9b2c47_1px,transparent_1px)] [background-size:16px_16px]"></div>
+                <div class="relative z-10 max-w-2xl space-y-6">
+                    <span class="inline-flex items-center gap-1.5 py-1 px-3 rounded-full text-xs font-semibold bg-white/10 backdrop-blur-md border border-white/20 text-wine-100">
+                        <i class="fa-solid fa-sparkles"></i> Цифровая экосистема для любителей вина
+                    </span>
+                    <h1 class="text-4xl sm:text-6xl font-extrabold tracking-tight leading-tight">
+                        Искусство дегустации в вашем кармане.
+                    </h1>
+                    <p class="text-gray-300 text-base sm:text-lg leading-relaxed">
+                        Откройте для себя персонального AI Сомелье в Telegram, ведите элегантный дневник дегустатора, исследуйте карту легендарных мировых и российских виноделен.
+                    </p>
+                    <div class="flex flex-wrap gap-4 pt-2">
+                        <a href="https://t.me/ai_sommelierbot" target="_blank" class="bg-wine-600 hover:bg-wine-700 text-white font-semibold px-6 py-3.5 rounded-2xl shadow-lg shadow-wine-600/30 transition flex items-center gap-2">
+                            <i class="fa-brands fa-telegram"></i> Запустить AI Сомелье
+                        </a>
+                        <button onclick="switchTab('journal')" class="bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 text-white font-semibold px-6 py-3.5 rounded-2xl transition flex items-center gap-2">
+                            <i class="fa-solid fa-book-open"></i> Дневник дегустатора
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Feature Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <a href="https://t.me/ai_sommelierbot" target="_blank" class="group bg-white rounded-3xl p-8 shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 cursor-pointer flex flex-col justify-between">
+                    <div>
+                        <div class="w-14 h-14 rounded-2xl bg-blue-50 text-[#229ED9] flex items-center justify-center text-2xl mb-6 group-hover:scale-110 transition-transform">
+                            <i class="fa-brands fa-telegram"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-gray-900 mb-2">AI Сомелье в Telegram</h3>
+                        <p class="text-gray-500 text-sm leading-relaxed">
+                            Интеллектуальный помощник мгновенно подберет идеальное вино и гастрономическую пару под ваш повод и блюдо.
+                        </p>
+                    </div>
+                    <div class="mt-6 flex items-center gap-2 text-wine-600 font-semibold text-sm">
+                        <span>Перейти к боту @ai_sommelierbot</span>
+                        <i class="fa-solid fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
+                    </div>
+                </a>
+
+                <div onclick="switchTab('journal')" class="group bg-white rounded-3xl p-8 shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 cursor-pointer flex flex-col justify-between">
+                    <div>
+                        <div class="w-14 h-14 rounded-2xl bg-wine-50 text-wine-600 flex items-center justify-center text-2xl mb-6 group-hover:scale-110 transition-transform">
+                            <i class="fa-solid fa-wine-glass-empty"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-gray-900 mb-2">Дневник дегустатора</h3>
+                        <p class="text-gray-500 text-sm leading-relaxed">
+                            Сохраняйте вина, загружайте фото бутылок, выставляйте оценки и используйте колесо вкусов для точного описания.
+                        </p>
+                    </div>
+                    <div class="mt-6 flex items-center gap-2 text-wine-600 font-semibold text-sm">
+                        <span>Открыть дневник</span>
+                        <i class="fa-solid fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
+                    </div>
+                </div>
+
+                <div onclick="switchTab('map')" class="group bg-white rounded-3xl p-8 shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 cursor-pointer flex flex-col justify-between">
+                    <div>
+                        <div class="w-14 h-14 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center text-2xl mb-6 group-hover:scale-110 transition-transform">
+                            <i class="fa-solid fa-map-location-dot"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-gray-900 mb-2">Интерактивная карта</h3>
+                        <p class="text-gray-500 text-sm leading-relaxed">
+                            Исследуйте знаменитые мировые и российские винодельни с подробными описаниями терруаров и стилей.
+                        </p>
+                    </div>
+                    <div class="mt-6 flex items-center gap-2 text-wine-600 font-semibold text-sm">
+                        <span>Смотреть карту</span>
+                        <i class="fa-solid fa-arrow-right group-hover:translate-x-1 transition-transform"></i>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 2: AI SOMMELIER -->
+        <section id="tab-sommelier" class="tab-content hidden space-y-8 animate-fadeIn">
+            <div class="max-w-3xl mx-auto bg-white rounded-3xl p-8 sm:p-12 shadow-sm border border-gray-100 text-center space-y-6">
+                <div class="w-20 h-20 rounded-3xl bg-blue-50 text-[#229ED9] flex items-center justify-center text-4xl mx-auto shadow-inner">
+                    <i class="fa-brands fa-telegram"></i>
+                </div>
+                <h2 class="text-3xl font-bold text-gray-900">AI Сомелье в Telegram</h2>
+                <p class="text-gray-600 text-base leading-relaxed max-w-xl mx-auto">
+                    Хотите узнать, какое вино идеально подойдет к ужину с рыбой, стейку рибай или романтическому вечеру? Наш искусственный интеллект-сомелье доступен в Telegram-боте <b>@ai_sommelierbot</b>.
+                </p>
+
+                <div class="pt-4">
+                    <a href="https://t.me/ai_sommelierbot" target="_blank" class="inline-flex items-center gap-3 bg-[#229ED9] hover:bg-[#1e8dbd] text-white font-semibold px-8 py-4 rounded-2xl shadow-lg shadow-blue-500/30 transition transform hover:scale-105 text-lg">
+                        <i class="fa-brands fa-telegram text-2xl"></i>
+                        <span>Открыть AI Сомелье в Telegram</span>
+                    </a>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 3: TASTING JOURNAL -->
+        <section id="tab-journal" class="tab-content hidden space-y-8 animate-fadeIn">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                    <h2 class="text-3xl font-bold text-gray-900 tracking-tight">Дневник дегустатора</h2>
+                    <p class="text-gray-500 text-sm mt-1">Ваша личная коллекция дегустационных заметок и вкусовых профилей</p>
+                </div>
+                <button onclick="openJournalModal()" class="bg-wine-600 hover:bg-wine-700 text-white font-semibold px-5 py-3 rounded-2xl shadow-lg shadow-wine-600/30 transition flex items-center gap-2">
+                    <i class="fa-solid fa-plus"></i> Добавить вино
+                </button>
+            </div>
+
+            <!-- Journal List Grid -->
+            <div id="journalGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Dynamically populated from localStorage -->
+            </div>
+
+            <!-- Empty State -->
+            <div id="journalEmpty" class="hidden text-center py-16 bg-white rounded-3xl border border-gray-100 p-8">
+                <div class="w-16 h-16 bg-wine-50 text-wine-600 rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl">
+                    <i class="fa-solid fa-wine-glass"></i>
+                </div>
+                <h3 class="text-lg font-bold text-gray-900 mb-1">Ваш дневник пока пуст</h3>
+                <p class="text-gray-500 text-sm mb-6">Добавьте свою первую дегустационную заметку</p>
+                <button onclick="openJournalModal()" class="bg-wine-600 text-white font-semibold px-5 py-2.5 rounded-xl hover:bg-wine-700 transition">
+                    Добавить вино
+                </button>
+            </div>
+        </section>
+
+        <!-- TAB 4: WINE MAP -->
+        <section id="tab-map" class="tab-content hidden space-y-8 animate-fadeIn">
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div>
+                    <h2 class="text-3xl font-bold text-gray-900 tracking-tight">Интерактивная винная карта</h2>
+                    <p class="text-gray-500 text-sm mt-1">Исследуйте великие винодельческие регионы мира и России</p>
+                </div>
+                <!-- Search Input for Map -->
+                <div class="relative w-full sm:w-80">
+                    <i class="fa-solid fa-magnifying-glass absolute left-4 top-3.5 text-gray-400 text-sm"></i>
+                    <input type="text" id="mapSearchInput" onkeydown="handleSearchKeyDown(event)" oninput="filterWineries()" placeholder="Поиск винодельни, региона..." class="w-full pl-10 pr-4 py-2.5 rounded-2xl border border-gray-200 bg-white focus:outline-none focus:ring-2 focus:ring-wine-500 text-sm shadow-sm">
+                </div>
+            </div>
+
+            <!-- Search History Chips -->
+            <div id="searchHistoryContainer" class="hidden flex-wrap items-center gap-2 pt-1">
+                <span class="text-xs font-medium text-gray-400 flex items-center gap-1 mr-1">
+                    <i class="fa-solid fa-clock-rotate-left"></i> История поиска:
+                </span>
+                <div id="historyChips" class="flex flex-wrap gap-2"></div>
+                <button onclick="clearSearchHistory()" class="text-xs text-red-500 hover:text-red-700 font-medium ml-2 transition">
+                    Очистить
+                </button>
+            </div>
+            
+            <div class="bg-white rounded-3xl p-4 shadow-sm border border-gray-100">
+                <div id="map"></div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6" id="wineriesList">
+                <!-- Wineries cards populated dynamically based ONLY on user search query -->
+            </div>
+        </section>
+
+        <!-- TAB 5: TIPS -->
+        <section id="tab-tips" class="tab-content hidden space-y-8 animate-fadeIn">
+            <div>
+                <h2 class="text-3xl font-bold text-gray-900 tracking-tight">Полезные советы</h2>
+                <p class="text-gray-500 text-sm mt-1">Экспертные руководства по хранению, гастрономии и винным шкафам</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Tip 1 -->
+                <div class="bg-white rounded-3xl p-8 shadow-sm border border-gray-100 flex flex-col justify-between">
+                    <div>
+                        <div class="w-14 h-14 rounded-2xl bg-wine-50 text-wine-600 flex items-center justify-center text-2xl mb-6">
+                            <i class="fa-solid fa-temperature-arrow-down"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-gray-900 mb-3">Правила хранения вина</h3>
+                        <ul class="space-y-3 text-sm text-gray-600">
+                            <li class="flex items-start gap-2">
+                                <i class="fa-solid fa-check text-wine-600 mt-1"></i>
+                                <span><strong>Температура:</strong> Стабильная 10–14°C без резких скачков.</span>
+                            </li>
+                            <li class="flex items-start gap-2">
+                                <i class="fa-solid fa-check text-wine-600 mt-1"></i>
+                                <span><strong>Влажность:</strong> Оптимально 70–80% для защиты пробки от высыхания.</span>
+                            </li>
+                            <li class="flex items-start gap-2">
+                                <i class="fa-solid fa-check text-wine-600 mt-1"></i>
+                                <span><strong>Положение:</strong> Бутылки с натуральной пробкой хранят горизонтально.</span>
+                            </li>
+                            <li class="flex items-start gap-2">
+                                <i class="fa-solid fa-check text-wine-600 mt-1"></i>
+                                <span><strong>Защита:</strong> Избегайте прямых солнечных лучей и вибраций.</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Tip 2 -->
+                <div class="bg-white rounded-3xl p-8 shadow-sm border border-gray-100 flex flex-col justify-between">
+                    <div>
+                        <div class="w-14 h-14 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center text-2xl mb-6">
+                            <i class="fa-solid fa-utensils"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-gray-900 mb-3">Подбор блюд (Гастрономия)</h3>
+                        <ul class="space-y-3 text-sm text-gray-600">
+                            <li class="flex items-start gap-2">
+                                <i class="fa-solid fa-check text-amber-600 mt-1"></i>
+                                <span><strong>Красное сухое:</strong> Идеально к стейкам, баранине, выдержанным сырам.</span>
+                            </li>
+                            <li class="flex items-start gap-2">
+                                <i class="fa-solid fa-check text-amber-600 mt-1"></i>
+                                <span><strong>Белое сухое:</strong> Прекрасно сочетается с рыбой, морепродуктами, птицей.</span>
+                            </li>
+                            <li class="flex items-start gap-2">
+                                <i class="fa-solid fa-check text-amber-600 mt-1"></i>
+                                <span><strong>Игристое:</strong> Универсальный аперитив, легкие закуски, фрукты и морепродукты.</span>
+                            </li>
+                            <li class="flex items-start gap-2">
+                                <i class="fa-solid fa-check text-amber-600 mt-1"></i>
+                                <span><strong>Полусладкое/Десертное:</strong> К голубым сырам и нежным десертам.</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Tip 3 -->
+                <div class="bg-white rounded-3xl p-8 shadow-sm border border-gray-100 flex flex-col justify-between">
+                    <div>
+                        <div class="w-14 h-14 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center text-2xl mb-6">
+                            <i class="fa-solid fa-box-archive"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-gray-900 mb-3">Создание винных шкафов</h3>
+                        <ul class="space-y-3 text-sm text-gray-600">
+                            <li class="flex items-start gap-2">
+                                <i class="fa-solid fa-check text-blue-600 mt-1"></i>
+                                <span><strong>Компрессорные системы:</strong> Надежное поддержание температуры и тихая работа.</span>
+                            </li>
+                            <li class="flex items-start gap-2">
+                                <i class="fa-solid fa-check text-blue-600 mt-1"></i>
+                                <span><strong>Зонирование:</strong> Раздельные температурные зоны для красных и белых вин.</span>
+                            </li>
+                            <li class="flex items-start gap-2">
+                                <i class="fa-solid fa-check text-blue-600 mt-1"></i>
+                                <span><strong>УФ-фильтры:</strong> Дверцы со специальным покрытием от светового старения.</span>
+                            </li>
+                            <li class="flex items-start gap-2">
+                                <i class="fa-solid fa-check text-blue-600 mt-1"></i>
+                                <span><strong>Антивибрация:</strong> Демпферы для компрессора, чтобы вино "отдыхало".</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="mt-auto border-t border-gray-200/80 bg-white/50 backdrop-blur-md py-8">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-gray-500">
+            <div class="flex items-center gap-2">
+                <div class="w-6 h-6 rounded-lg bg-wine-600 text-white flex items-center justify-center text-xs">
+                    <i class="fa-solid fa-wine-glass"></i>
+                </div>
+                <span class="font-semibold text-gray-900">innowine</span>
+            </div>
+            <div>
+                <span>Минздрав предупреждает: чрезмерное употребление алкоголя вредит здоровью.</span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- ADD/EDIT TASTING JOURNAL MODAL -->
+    <div id="journalModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 backdrop-blur-sm px-4 py-6 overflow-y-auto">
+        <div class="bg-white max-w-xl w-full rounded-3xl p-8 shadow-2xl space-y-6 my-auto">
+            <div class="flex justify-between items-center">
+                <h3 class="text-2xl font-bold text-gray-900" id="modalHeaderTitle">Новая дегустация</h3>
+                <button onclick="closeJournalModal()" class="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 hover:bg-gray-200 transition">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <form id="journalForm" onsubmit="saveJournalEntry(event)" class="space-y-4">
+                <input type="hidden" id="entryId">
+                
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-700 uppercase mb-1">Название вина</label>
+                        <input type="text" id="wineName" required placeholder="Например: Chateau Margaux" class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-wine-500 text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-700 uppercase mb-1">Тип и Год</label>
+                        <div class="flex gap-2">
+                            <select id="wineType" class="w-1/2 px-3 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-wine-500 text-sm">
+                                <option value="Красное">Красное</option>
+                                <option value="Белое">Белое</option>
+                                <option value="Розовое">Розовое</option>
+                                <option value="Игристое">Игристое</option>
+                                <option value="Оранжевое">Оранжевое</option>
+                            </select>
+                            <input type="number" id="wineYear" placeholder="Год" class="w-1/2 px-3 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-wine-500 text-sm">
+                        </div>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-gray-700 uppercase mb-1">Фото бутылки / этикетки</label>
+                    <input type="file" id="winePhoto" accept="image/*" class="w-full text-sm text-gray-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-wine-50 file:text-wine-700 hover:file:bg-wine-100">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-gray-700 uppercase mb-1">Оценка (Звезды)</label>
+                    <div class="flex gap-2 text-2xl text-amber-400 cursor-pointer" id="starRatingContainer">
+                        <i class="fa-regular fa-star" onclick="setRating(1)"></i>
+                        <i class="fa-regular fa-star" onclick="setRating(2)"></i>
+                        <i class="fa-regular fa-star" onclick="setRating(3)"></i>
+                        <i class="fa-regular fa-star" onclick="setRating(4)"></i>
+                        <i class="fa-regular fa-star" onclick="setRating(5)"></i>
+                    </div>
+                    <input type="hidden" id="wineRating" value="0">
+                </div>
+
+                <!-- Flavor Wheel Sliders -->
+                <div class="bg-gray-50 p-4 rounded-2xl space-y-3 border border-gray-100">
+                    <span class="text-xs font-bold text-gray-800 uppercase block mb-2"><i class="fa-solid fa-chart-pie text-wine-600 mr-1.5"></i> Шкала вкусов и характеристик (0-5)</span>
+                    
+                    <div>
+                        <div class="flex justify-between text-xs text-gray-600 mb-1">
+                            <span>Кислотность (Acidity)</span>
+                            <span id="val-acidity">0</span>
+                        </div>
+                        <input type="range" id="wheelAcidity" min="0" max="5" value="0" oninput="document.getElementById('val-acidity').innerText=this.value" class="w-full accent-wine-600">
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between text-xs text-gray-600 mb-1">
+                            <span>Танины (Tannins)</span>
+                            <span id="val-tannins">0</span>
+                        </div>
+                        <input type="range" id="wheelTannins" min="0" max="5" value="0" oninput="document.getElementById('val-tannins').innerText=this.value" class="w-full accent-wine-600">
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between text-xs text-gray-600 mb-1">
+                            <span>Сладость / Сахар (Sweetness)</span>
+                            <span id="val-sweetness">0</span>
+                        </div>
+                        <input type="range" id="wheelSweetness" min="0" max="5" value="0" oninput="document.getElementById('val-sweetness').innerText=this.value" class="w-full accent-wine-600">
+                    </div>
+
+                    <div>
+                        <div class="flex justify-between text-xs text-gray-600 mb-1">
+                            <span>Тело / Плотность (Body)</span>
+                            <span id="val-body">0</span>
+                        </div>
+                        <input type="range" id="wheelBody" min="0" max="5" value="0" oninput="document.getElementById('val-body').innerText=this.value" class="w-full accent-wine-600">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold text-gray-700 uppercase mb-1">Заметка дегустатора</label>
+                    <textarea id="wineNote" rows="3" placeholder="Аромат, ноты во вкусе, послевкусие, гастрономическая пара..." class="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-wine-500 text-sm"></textarea>
+                </div>
+
+                <div class="flex justify-end gap-3 pt-2">
+                    <button type="button" onclick="closeJournalModal()" class="px-5 py-2.5 rounded-xl border border-gray-200 text-gray-700 font-medium hover:bg-gray-100 transition text-sm">Отмена</button>
+                    <button type="submit" class="px-6 py-2.5 rounded-xl bg-wine-600 text-white font-medium hover:bg-wine-700 shadow-lg shadow-wine-600/30 transition text-sm">Сохранить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Application Script -->
+    <script>
+        // --- Wine Map & Wineries Data & Regions ---
+        const wineRegionsData = [
+            {
+                name: "Бордо / Bordeaux (France / Франция)",
+                coords: [
+                    [45.45, -0.90], [45.25, -0.20], [44.70, -0.10], [44.50, -0.50], [44.80, -0.95]
+                ],
+                color: "#821d37"
+            },
+            {
+                name: "Шампань / Champagne (France / Франция)",
+                coords: [
+                    [49.40, 3.70], [49.40, 4.30], [48.80, 4.40], [48.80, 3.60]
+                ],
+                color: "#d97706"
+            },
+            {
+                name: "Тоскана / Tuscany / Toscana (Italy / Италия)",
+                coords: [
+                    [44.10, 10.00], [44.00, 12.00], [42.40, 11.80], [42.40, 10.10]
+                ],
+                color: "#7c3aed"
+            },
+            {
+                name: "Пьемонт / Piedmont / Piemonte (Italy / Италия)",
+                coords: [
+                    [45.10, 7.50], [45.10, 8.80], [44.30, 8.50], [44.30, 7.30]
+                ],
+                color: "#9333ea"
+            },
+            {
+                name: "Риоха / Rioja (Spain / Испания)",
+                coords: [
+                    [42.70, -2.90], [42.60, -1.90], [42.00, -2.10], [42.20, -2.95]
+                ],
+                color: "#c026d3"
+            },
+            {
+                name: "Долина Напа / Napa Valley (USA / США)",
+                coords: [
+                    [38.70, -122.60], [38.60, -122.25], [38.20, -122.20], [38.25, -122.50]
+                ],
+                color: "#2563eb"
+            },
+            {
+                name: "Краснодарский край / Кубань / Kuban (Russia / Россия)",
+                coords: [
+                    [45.60, 36.50], [45.50, 38.50], [44.40, 38.50], [44.50, 36.80]
+                ],
+                color: "#059669"
+            },
+            {
+                name: "Крым / Crimea (Russia / Россия)",
+                coords: [
+                    [45.80, 33.50], [45.50, 36.50], [44.30, 34.50], [44.60, 33.30]
+                ],
+                color: "#0284c7"
+            },
+            {
+                name: "Долина Дона / Don Valley (Russia / Россия)",
+                coords: [
+                    [47.80, 40.50], [47.80, 42.20], [47.10, 42.20], [47.10, 40.50]
+                ],
+                color: "#16a34a"
+            },
+            {
+                name: "Кахетия / Kakheti (Georgia / Грузия)",
+                coords: [
+                    [42.20, 45.00], [42.00, 46.50], [41.20, 46.20], [41.50, 44.80]
+                ],
+                color: "#ea580c"
+            },
+            {
+                name: "Долина Мозеля / Mosel (Germany / Германия)",
+                coords: [
+                    [50.15, 6.90], [50.15, 7.30], [49.60, 7.10], [49.60, 6.50]
+                ],
+                color: "#10b981"
+            },
+            {
+                name: "Мендоса / Mendoza (Argentina / Аргентина)",
+                coords: [
+                    [-32.50, -69.20], [-32.50, -68.30], [-34.20, -68.30], [-34.20, -69.20]
+                ],
+                color: "#dc2626"
+            },
+            {
+                name: "Марлборо / Marlborough (New Zealand / Новая Зеландия)",
+                coords: [
+                    [-41.30, 173.50], [-41.30, 174.20], [-41.80, 174.10], [-41.80, 173.40]
+                ],
+                color: "#06b6d4"
+            },
+            {
+                name: "Бургундия / Burgundy / Bourgogne (France / Франция)",
+                coords: [
+                    [47.80, 4.30], [47.80, 5.20], [46.30, 5.00], [46.30, 4.20]
+                ],
+                color: "#9b2c47"
+            },
+            {
+                name: "Долина Роны / Rhône Valley (France / Франция)",
+                coords: [
+                    [45.80, 4.70], [45.80, 5.10], [43.80, 4.90], [43.80, 4.40]
+                ],
+                color: "#b91c1c"
+            },
+            {
+                name: "Венето / Veneto (Italy / Италия)",
+                coords: [
+                    [46.00, 10.80], [46.00, 12.50], [45.10, 12.30], [45.10, 10.70]
+                ],
+                color: "#6d28d9"
+            },
+            {
+                name: "Сицилия / Sicily / Sicilia (Italy / Италия)",
+                coords: [
+                    [38.30, 12.40], [38.30, 15.65], [36.60, 15.20], [36.60, 13.00]
+                ],
+                color: "#5b21b6"
+            },
+            {
+                name: "Рибера-дель-Дуэро / Ribera del Duero (Spain / Испания)",
+                coords: [
+                    [41.90, -4.50], [41.90, -3.20], [41.30, -3.20], [41.30, -4.50]
+                ],
+                color: "#a21caf"
+            },
+            {
+                name: "Долина Дору / Douro Valley (Portugal / Португалия)",
+                coords: [
+                    [41.50, -7.80], [41.50, -6.80], [41.00, -6.80], [41.00, -7.80]
+                ],
+                color: "#be185d"
+            },
+            {
+                name: "Стелленбос / Stellenbosch (South Africa / ЮАР)",
+                coords: [
+                    [-33.70, 18.60], [-33.70, 19.10], [-34.15, 19.10], [-34.15, 18.60]
+                ],
+                color: "#9f1239"
+            }
+        ];
+
+        const wineriesData = [
+            // ФРАНЦИЯ (Бордо, Бургундия, Шампань, Рона, Эльзас, Луара)
+            { name: "Château Margaux (Шато Марго)", lat: 45.0441, lng: -0.6775, desc: "Premier Grand Cru Classé. Бордо, Медок. Легендарный изысканный Каберне Совиньон.", region: "Bordeaux, France / Бордо, Франция" },
+            { name: "Château Lafite Rothschild (Шато Лафит Ротшильд)", lat: 45.2253, lng: -0.7711, desc: "Пойяк, Бордо. Великое вино Первого Крю.", region: "Bordeaux, France / Бордо, Франция" },
+            { name: "Château d'Yquem (Шато д'Икем / Сотерн)", lat: 44.5447, lng: -0.3325, desc: "Вершина сладких благородных вин Сотерн.", region: "Bordeaux, France / Бордо, Франция" },
+            { name: "Château Latour (Шато Латур)", lat: 45.1806, lng: -0.7451, desc: "Мощный танинный Пойяк с многовековой историей.", region: "Bordeaux, France / Бордо, Франция" },
+            { name: "Château Haut-Brion (Шато О-Брион)", lat: 44.8197, lng: -0.6133, desc: "Старейшее великое имение Пессак-Леоньян.", region: "Bordeaux, France / Бордо, Франция" },
+            { name: "Château Cheval Blanc (Шато Шеваль Блан)", lat: 44.9189, lng: -0.1906, desc: "Сент-Эмильон. Иконический купаж Каберне Фран и Мерло.", region: "Bordeaux, France / Бордо, Франция" },
+            { name: "Château Petrus (Шато Петрюс / Pomerol)", lat: 44.9317, lng: -0.1872, desc: "Помероль. Величайший 100% Мерло в мире.", region: "Bordeaux, France / Бордо, Франция" },
+            { name: "Château Le Pin (Шато Ле Пен)", lat: 44.9281, lng: -0.1944, desc: "Гаражная винодельня Помероля с культовым статусом.", region: "Bordeaux, France / Бордо, Франция" },
+            { name: "Dom Pérignon / Moët & Chandon (Дом Периньон)", lat: 49.0519, lng: 3.9351, desc: "Символ престижного шампанского из Эперне.", region: "Champagne, France / Шампань, Франция" },
+            { name: "Krug Champagne (Круг)", lat: 49.2558, lng: 4.0322, desc: "Аристократичный дом престижного дубового выдержанного шампанского.", region: "Champagne, France / Шампань, Франция" },
+            { name: "Louis Roederer Cristal (Луи Родерер Кристаль)", lat: 49.2612, lng: 4.0411, desc: "Создатель культового престижного кюве Cristal.", region: "Champagne, France / Шампань, Франция" },
+            { name: "Domaine de la Romanée-Conti (DRC / Романе-Конти)", lat: 47.1611, lng: 4.9536, desc: "Самый редкий и дорогой Пино Нуар в мире.", region: "Burgundy, France / Бургундия, Франция" },
+            { name: "Domaine Leflaive (Домен Лефлев / Puligny-Montrachet)", lat: 46.9634, lng: 4.7431, desc: "Икона белых вин Шардоне из Пюлиньи-Монраше.", region: "Burgundy, France / Бургундия, Франция" },
+            { name: "Maison Etienne Guigal (Е. Гигаль / Côte-Rôtie)", lat: 45.4883, lng: 4.7958, desc: "Властелин Северной Роны и вин La Landonne, La Mouline.", region: "Rhône Valley, France / Долина Роны, Франция" },
+            { name: "Château de Beaucastel (Шато де Бокастель)", lat: 44.0573, lng: 4.8315, desc: "Легенда Шатонёф-дю-Пап.", region: "Rhône Valley, France / Долина Роны, Франция" },
+            { name: "Château Rayas (Шато Райас)", lat: 44.0622, lng: 4.8451, desc: "Редчайший культовый 100% Гренаш.", region: "Rhône Valley, France / Долина Роны, Франция" },
+            { name: "Maison Trimbach (Тримбах / Riesling)", lat: 48.1969, lng: 7.3092, desc: "Эльзас. Сухой минеральный рислинг Cuvée Frédéric Emile.", region: "Alsace, France / Эльзас, Франция" },
+            { name: "Domaine Zind-Humbrecht (Зинд-Умбрехт)", lat: 48.0583, lng: 7.2711, desc: "Биодинамический флагман Эльзаса.", region: "Alsace, France / Эльзас, Франция" },
+            { name: "Domaine Dagueneau (Дагено / Pouilly-Fumé)", lat: 47.2811, lng: 2.9512, desc: "Величайший Совиньон Блан из долины Луары.", region: "Loire Valley, France / Долина Луары, Франция" },
+
+            // ИТАЛИЯ (Тоскана, Пьемонт, Венето, Фриули, Сицилия)
+            { name: "Tenuta San Guido (Sassicaia / Сассикайя)", lat: 43.1678, lng: 10.6128, desc: "Первенец и икона Супертосканы в Болгери.", region: "Tuscany, Italy / Тоскана, Италия" },
+            { name: "Antinori nel Chianti Classico (Антинори / Tignanello)", lat: 43.5487, lng: 11.2154, desc: "Создатели культовых вин Tignanello и Solaia.", region: "Tuscany, Italy / Тоскана, Италия" },
+            { name: "Biondi-Santi (Бьонди-Санти / Brunello di Montalcino)", lat: 43.0489, lng: 11.4981, desc: "Создатели стиля Брунелло ди Монтальчино.", region: "Tuscany, Italy / Тоскана, Италия" },
+            { name: "Ornellaia (Орнеллайя / Bolgheri)", lat: 43.2081, lng: 10.6158, desc: "Флагманский бордоский купаж Болгери.", region: "Tuscany, Italy / Тоскана, Италия" },
+            { name: "Masseto (Массето / Merlot)", lat: 43.2112, lng: 10.6189, desc: "Супертосканский 100% Мерло с культовым статусом.", region: "Tuscany, Italy / Тоскана, Италия" },
+            { name: "Gaja Barbaresco (Гайя Барбареско / Nebbiolo)", lat: 44.7247, lng: 8.0811, desc: "Великий реформатор Пьемонта Анджело Гайя.", region: "Piedmont, Italy / Пьемонт, Италия" },
+            { name: "Bartolo Mascarello (Бартоло Маскарелло)", lat: 44.6094, lng: 7.9342, desc: "Традиционное беспроигрышное Бароло.", region: "Piedmont, Italy / Пьемонт, Италия" },
+            { name: "Giacomo Conterno (Джакомо Контерно Monfortino)", lat: 44.6211, lng: 7.9812, desc: "Легендарное выдержанное Barolo Monfortino.", region: "Piedmont, Italy / Пьемонт, Италия" },
+            { name: "Masi Agricola (Мази / Amarone)", lat: 45.5262, lng: 10.8872, desc: "Мастера подвяленного винограда Амароне делла Вальполичелла.", region: "Veneto, Italy / Венето, Италия" },
+            { name: "Giuseppe Quintarelli (Квинтарелли)", lat: 45.5189, lng: 10.9122, desc: "Патриарх вин Вальполичелла и Амароне.", region: "Veneto, Italy / Венето, Италия" },
+            { name: "Gravner (Гравнер / Amber Orange wine)", lat: 46.0022, lng: 13.5281, desc: "Оранжевые вина, выдержанные в амфорах квеври.", region: "Friuli, Italy / Фриули, Италия" },
+            { name: "Donnafugata (Доннафугата / Ben Ryé)", lat: 37.7981, lng: 12.4344, desc: "Яркая Сицилия и десертное вино Ben Ryé с острова Пантеллерия.", region: "Sicily, Italy / Сицилия, Италия" },
+            { name: "Tenuta delle Terre Nere (Терре Нере / Etna)", lat: 37.8912, lng: 15.0112, desc: "Вулканические вина из сорта Нерелло Маскалезе с вулкана Этна.", region: "Sicily, Italy / Сицилия, Италия" },
+            { name: "Ferrari Trento (Феррари Тренто)", lat: 46.0611, lng: 11.1158, desc: "Эталонное классическое итальянское игристое Trentodoc.", region: "Trentino, Italy / Трентино, Италия" },
+
+            // ИСПАНИЯ & ПОРТУГАЛИЯ
+            { name: "Vega Sicilia (Вега Сисилия Unico)", lat: 41.6322, lng: -4.2411, desc: "Легендарная испанская винодельня с многолетней выдержкой 'Unico'.", region: "Ribera del Duero, Spain / Рибера-дель-Дуэро, Испания" },
+            { name: "Dominio de Pingus (Пингус)", lat: 41.6241, lng: -4.1353, desc: "Редчайшее культовое Темпранильо.", region: "Ribera del Duero, Spain / Рибера-дель-Дуэро, Испания" },
+            { name: "Marqués de Riscal (Маркес де Рискаль)", lat: 42.5119, lng: -2.6183, desc: "Пионер Риохи с известной футуристической архитектурой Фрэнка Гери.", region: "Rioja, Spain / Риоха, Испания" },
+            { name: "R. López de Heredia Viña Tondonia (Тондония)", lat: 42.5802, lng: -2.8488, desc: "Традиционная выдержка в старых дубовых бочках.", region: "Rioja, Spain / Риоха, Испания" },
+            { name: "Bodegas Álvaro Palacios (Альваро Паласиос / L'Ermita)", lat: 41.1822, lng: 0.8153, desc: "Революционер Приората.", region: "Priorat, Spain / Приорат, Испания" },
+            { name: "Bodegas Lustau (Лустау / Sherry)", lat: 36.6852, lng: -6.1361, desc: "Херес Амонтильядо, Олоросо и Педро Хименес.", region: "Andalusia, Spain / Андалусия, Испания" },
+            { name: "Quinta do Noval (Кинта ду Новал / Vintage Port)", lat: 41.1642, lng: -7.5614, desc: "Дом винтажного портвейна и культового Nacional.", region: "Douro Valley, Portugal / Долина Дору, Португалия" },
+            { name: "Taylor's Port (Тейлорс Порт)", lat: 41.1336, lng: -8.6133, desc: "Один из величайших домов портвейна в Вила-Нова-де-Гая.", region: "Douro Valley, Portugal / Долина Дору, Португалия" },
+            { name: "Niepoort (Нипурт)", lat: 41.1189, lng: -7.5122, desc: "Инновационные сухие вина Дору и классический портвейн.", region: "Douro Valley, Portugal / Долина Дору, Португалия" },
+            { name: "Blandy's Madeira (Блэндис Мадейра)", lat: 32.6481, lng: -16.9089, desc: "Исторический дом долговечного крепленого вина Мадейра.", region: "Madeira, Portugal / Мадейра, Португалия" },
+
+            // РОССИЯ (Кубань, Дон, Крым, Дагестан, Северная Осетия, Волга)
+            { name: "Abrau-Durso (Абрау-Дюрсо / Классическое игристое)", lat: 44.7042, lng: 37.6019, desc: "Центр туризма и производства шампанских вин по классическому методу с 1870 года.", region: "Krasnodar Krai, Russia / Краснодарский край, Россия" },
+            { name: "Fanagoria (Фанагория)", lat: 45.3333, lng: 37.1333, desc: "Крупнейшее винодельческое предприятие Тамани (сорта Красностоп и Саперави).", region: "Taman, Russia / Тамань, Россия" },
+            { name: "Usadba Divnomorskoe (Усадьба Дивноморское)", lat: 44.4988, lng: 38.1328, desc: "Премиальное терруарное виноделие на берегу Черного моря у Геленджика.", region: "Krasnodar Krai, Russia / Краснодарский край, Россия" },
+            { name: "Château de Talu (Шато де Талю)", lat: 44.5381, lng: 38.0558, desc: "Французский замок и виноградники с видом на Геленджикскую бухту.", region: "Krasnodar Krai, Russia / Краснодарский край, Россия" },
+            { name: "Vedernikov Winery (Винодельня Ведерниковъ)", lat: 47.6181, lng: 41.5122, desc: "Первопроходцы в работе с донскими автохтонными сортами (Красностоп Золотовский, Цимлянский Черный).", region: "Don Valley, Russia / Долина Дона, Россия" },
+            { name: "Gusev Winery (Винодельня Гусевъ)", lat: 49.7214, lng: 44.5719, desc: "Крафтовое семейное виноделие в Дубовке на Волге.", region: "Lower Volga, Russia / Нижняя Волга, Россия" },
+            { name: "Sober Bash (Собер Баш)", lat: 44.8028, lng: 38.8319, desc: "Предгорья Кавказа. Биодинамика и автохтоны.", region: "Krasnodar Krai, Russia / Краснодарский край, Россия" },
+            { name: "Lefkadia Valley (Долина Лефкадия)", lat: 45.0012, lng: 37.8689, desc: "Живописный терруар Крымского района с гравитационной винодельней и сыроварней.", region: "Krasnodar Krai, Russia / Краснодарский край, Россия" },
+            { name: "Galitsky & Galitsky (Галицкий и Галицкий)", lat: 44.7551, lng: 37.5212, desc: "Премиальный бутиковый прохладный терруар в станице Гостагаевской.", region: "Krasnodar Krai, Russia / Краснодарский край, Россия" },
+            { name: "Shumrinka (Шумринка)", lat: 44.8722, lng: 37.4511, desc: "Современная винодельня в районе Анапы (сорта Мальвазия, Пино Блан).", region: "Krasnodar Krai, Russia / Краснодарский край, Россия" },
+            { name: "Sikory Winery (Винодельня Сикоры)", lat: 44.8622, lng: 37.7219, desc: "Гравитационный комплекс в Семигорье (Рислинг и Сира).", region: "Krasnodar Krai, Russia / Краснодарский край, Россия" },
+            { name: "Gunko Winery (Винодельня Гунько)", lat: 44.9211, lng: 37.8122, desc: "Авторские яркие белые и розовые вина из станицы Нижнебаканской.", region: "Krasnodar Krai, Russia / Краснодарский край, Россия" },
+            { name: "Markotkh (Винодельня Маркотх Марка Кауфмана)", lat: 44.5891, lng: 38.0811, desc: "Виноградники на склонах Маркотхского хребта.", region: "Krasnodar Krai, Russia / Краснодарский край, Россия" },
+            { name: "Cote de Saint Daniel (Шато Кот де Сен Даниэль)", lat: 44.5189, lng: 34.2311, desc: "Бутиковое премиальное виноделие на Южном берегу Крыма (Гурзуф).", region: "Crimea, Russia / Крым, Россия" },
+            { name: "Massandra (Массандра)", lat: 44.5089, lng: 34.1783, desc: "Старейшие десертные вина и легендарная энотека с бутылками XVIII века.", region: "Crimea, Russia / Крым, Россия" },
+            { name: "Zolotaya Balka (Золотая Балка / Balaklava)", lat: 44.5631, lng: 33.6053, desc: "Игристые и тихие вина Балаклавской долины.", region: "Crimea, Russia / Крым, Россия" },
+            { name: "Inkerman (Инкерман)", lat: 44.6147, lng: 33.6061, desc: "Севастопольские подземные штольни для выдержки вин в дубе.", region: "Sevastopol, Russia / Севастополь, Россия" },
+            { name: "Oleg Repin Winery (Олег Репин)", lat: 44.6311, lng: 33.6422, desc: "Знаковый авторский проект в Любимовке и долине реки Кача.", region: "Sevastopol, Russia / Севастополь, Россия" },
+            { name: "UPPA Winery Pavel Shvets (Павел Швец)", lat: 44.6012, lng: 33.7850, desc: "Первая сертифицированная биодинамическая винодельня в родном селе Родное.", region: "Sevastopol, Russia / Севастополь, Россия" },
+            { name: "Mangup Winery (Винодельня Мангуп)", lat: 44.5912, lng: 33.7911, desc: "Семейная винодельня на плато у подножия древней крепости Мангуп-Кале.", region: "Sevastopol, Russia / Севастополь, Россия" },
+            { name: "Derbent Enoteca (Дербентская Винодельческая Компания / DVK)", lat: 42.0678, lng: 48.2899, desc: "Самый южный терруар Дагестана (сорта Ркацители, Мускат, Уньи Блан).", region: "Dagestan, Russia / Дагестан, Россия" },
+            { name: "Konstantin Dzitoev Winery (Винодельня Дзитоева)", lat: 43.0211, lng: 44.6811, desc: "Авторское виноделие Владикавказа. Ручная роспись каждой бутылки.", region: "North Ossetia, Russia / Северная Осетия, Россия" },
+
+            // ГРУЗИЯ, АРМЕНИЯ, ГРЕЦИЯ
+            { name: "Château Mukhrani (Шато Мухрани)", lat: 41.9256, lng: 44.5772, desc: "Царское имение Багратионов-Мухранских.", region: "Kartli, Georgia / Картли, Грузия" },
+            { name: "Khareba Winery (Винодельня Хареба)", lat: 41.9483, lng: 45.8239, desc: "Кварельский 7-километровый тоннель в скале и вина в квеври.", region: "Kakheti, Georgia / Кахетия, Грузия" },
+            { name: "Pheasant's Tears (Слезы Фазана / Сигнахи)", lat: 41.6189, lng: 45.9212, desc: "Натуральные грузинские вина в квеври.", region: "Kakheti, Georgia / Кахетия, Грузия" },
+            { name: "Shumi Winery (Винодельня Шуми / Цинандали)", lat: 41.8922, lng: 45.5711, desc: "Винно-этнографический комплекс с парком автохтонов.", region: "Kakheti, Georgia / Кахетия, Грузия" },
+            { name: "Zorah Wines (Зора Вайнс / Areni)", lat: 39.7712, lng: 45.3311, desc: "Высокогорный армянский сот Арени, выдержанный в глиняных амфорах карас.", region: "Vayots Dzor, Armenia / Вайоц Дзор, Армения" },
+            { name: "Karas Wines (Карас Вайнс)", lat: 40.1211, lng: 43.9112, desc: "Крупная современная винодельня Араратской долины.", region: "Armavir, Armenia / Армавир, Армения" },
+            { name: "Estate Argyros (Эстейт Аргирос)", lat: 36.3812, lng: 25.4312, desc: "Санторини. Минеральный вулканический сорт Ассиртико.", region: "Santorini, Greece / Санторини, Греция" },
+
+            // ГЕРМАНИЯ & АВСТРИЯ
+            { name: "Weingut Egon Müller (Эгон Мюллер / Scharzhofberg)", lat: 49.6592, lng: 6.6025, desc: "Мозель. Мировой эталон сладости и минеральности Рислинга.", region: "Mosel, Germany / Мозель, Германия" },
+            { name: "Schloss Johannisberg (Йоханнисберг)", lat: 50.0019, lng: 7.9858, desc: "Первый в мире чисто рислинговый виноградник (Райнгау).", region: "Rheingau, Germany / Райнгау, Германия" },
+            { name: "Weingut Keller (Келлер / Rheinhessen)", lat: 49.7281, lng: 8.2112, desc: "Культовый сухой рислинг G-Max.", region: "Rheinhessen, Germany / Райнхессен, Германия" },
+            { name: "Weingut F.X. Pichler (Пихлер / Wachau)", lat: 48.3889, lng: 15.4411, desc: "Австрийские сорта Грюнер Вельтлинер и Рислинг из Вахау.", region: "Wachau, Austria / Вахау, Австрия" },
+
+            // СЕВЕРНАЯ И ЮЖНАЯ АМЕРИКА
+            { name: "Robert Mondavi Winery (Роберт Мондави)", lat: 38.5025, lng: -122.4696, desc: "Пионер виноделия Долины Напа и создатель стиля Fumé Blanc.", region: "Napa Valley, USA / Долина Напа, США" },
+            { name: "Opus One Winery (Опус Уан)", lat: 38.4419, lng: -122.4069, desc: "Премиальный альянс Роберта Мондави и барона Филиппа де Ротшильда.", region: "Napa Valley, USA / Долина Напа, США" },
+            { name: "Screaming Eagle (Скриминг Игл)", lat: 38.5281, lng: -122.4212, desc: "Культовый 'культ-каб' Напы с микроскопическим объемом выпуска.", region: "Napa Valley, USA / Долина Напа, США" },
+            { name: "Dominus Estate (Доминус)", lat: 38.4112, lng: -122.3811, desc: "Проект Кристиана Муэкса (владельца Petrus) в Калифорнии.", region: "Napa Valley, USA / Долина Напа, США" },
+            { name: "Ridge Vineyards (Ридж / Monte Bello)", lat: 37.3189, lng: -122.1122, desc: "Легендарное имение в Санта-Крус и победитель «Парижского суда 1976».", region: "California, USA / Калифорния, США" },
+            { name: "Bodega Catena Zapata (Катена Сапата)", lat: -33.2289, lng: -68.9172, desc: "Высокогорный Мальбек в Мендосе на высоте более 1400 метров.", region: "Mendoza, Argentina / Мендоса, Аргентина" },
+            { name: "Cheval des Andes (Шеваль де энд)", lat: -33.0112, lng: -68.8512, desc: "Совместный проект Château Cheval Blanc и Terrazas de los Andes.", region: "Mendoza, Argentina / Мендоса, Аргентина" },
+            { name: "Concha y Toro / Don Melchor (Конча и Торо)", lat: -33.6617, lng: -70.5756, desc: "Флагман чилийского Каберне Совиньон из долины Майпо.", region: "Maipo Valley, Chile / Долина Майпо, Чили" },
+            { name: "Viña Almaviva (Альмавива)", lat: -33.6481, lng: -70.5812, desc: "Совместное имение Барона Филиппа де Ротшильда и Viña Concha y Toro.", region: "Maipo Valley, Chile / Долина Майпо, Чили" },
+
+            // АВСТРАЛИЯ, НОВАЯ ЗЕЛАНДИЯ, ЮАР
+            { name: "Cloudy Bay Vineyards (Клауди Бэй)", lat: -41.5269, lng: 173.8822, desc: "Винодельня, прославившая Совиньон Блан из Новой Зеландии на весь мир.", region: "Marlborough, New Zealand / Марлборо, Новая Зеландия" },
+            { name: "Felton Road (Фелтон Роуд)", lat: -45.0512, lng: 169.1122, desc: "Центральный Отаго. Премиальный биодинамический Пино Нуар.", region: "Central Otago, New Zealand / Новая Зеландия" },
+            { name: "Penfolds Magill Estate (Пенфолдс Grange)", lat: -34.9122, lng: 138.6711, desc: "Австралийская икона Шираза 'Grange'.", region: "Barossa / Adelaide, Australia / Австралия" },
+            { name: "Henschke Hill of Grace (Хеншке)", lat: -34.5281, lng: 139.1122, desc: "Старейшие лозы Шираза в Долине Иден.", region: "Eden Valley, Australia / Австралия" },
+            { name: "Kanonkop Wine Estate (Канонкоп)", lat: -33.8550, lng: 18.8600, desc: "Эталонный Пинотаж и Каберне из Стелленбоса.", region: "Stellenbosch, South Africa / Стелленбос, ЮАР" },
+            { name: "Klein Constantia (Клейн Констанция Vin de Constance)", lat: -34.0381, lng: 18.4211, desc: "Легендарное десертное вино Vin de Constance, любимое Наполеоном.", region: "Constantia, South Africa / ЮАР" }
+        ];
+
+        let placemarksList = [];
+
+        // Age Verification Handler
+        function verifyAge(isAdult) {
+            const ageModal = document.getElementById('ageModal');
+            if (isAdult) {
+                localStorage.setItem('innowine_age_verified', 'true');
+                if (ageModal) {
+                    ageModal.classList.add('opacity-0', 'pointer-events-none');
+                    setTimeout(() => {
+                        ageModal.classList.add('hidden');
+                    }, 300);
+                }
+            } else {
+                showModal('Доступ ограничен', 'К сожалению, доступ к сайту разрешен только лицам, достигшим 18 лет.', 'fa-solid fa-triangle-exclamation text-red-500');
+            }
+        }
+
+        // Initialize application state on page load
+        function initApp() {
+            const isVerified = localStorage.getItem('innowine_age_verified');
+            const ageModal = document.getElementById('ageModal');
+            if (isVerified === 'true' && ageModal) {
+                ageModal.classList.add('hidden');
+            }
+
+            renderJournal();
+            initMapAndWineries();
+        }
+
+        window.addEventListener('DOMContentLoaded', initApp);
+
+        // Helper function for transliteration (cyrillic to latin & vice versa) for broad multilingual search
+        function normalizeSearchString(str) {
+            if (!str) return '';
+            const ruToLat = {
+                'а': 'a', 'б': 'b', 'в': 'v', 'г': 'g', 'д': 'd', 'е': 'e', 'ё': 'yo', 'ж': 'zh',
+                'з': 'z', 'и': 'i', 'й': 'y', 'к': 'k', 'л': 'l', 'м': 'm', 'н': 'n', 'о': 'o',
+                'п': 'p', 'р': 'r', 'с': 's', 'т': 't', 'у': 'u', 'ф': 'f', 'х': 'h', 'ц': 'ts',
+                'ч': 'ch', 'ш': 'sh', 'щ': 'sch', 'ъ': '', 'ы': 'y', 'ь': '', 'э': 'e', 'ю': 'yu', 'я': 'ya'
+            };
+            
+            let normalized = str.toLowerCase().trim();
+            let transliterated = '';
+            for (let char of normalized) {
+                transliterated += ruToLat[char] || char;
+            }
+            return normalized + ' ' + transliterated;
+        }
+
+        function switchTab(tabId) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            // Remove active styles from nav buttons
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('bg-white', 'text-gray-900', 'shadow-sm');
+                btn.classList.add('text-gray-600');
+            });
+
+            // Show selected tab
+            const targetTab = document.getElementById(`tab-${tabId}`);
+            if (targetTab) targetTab.classList.remove('hidden');
+
+            // Highlight nav button
+            const navBtn = document.getElementById(`nav-${tabId}`);
+            if (navBtn) {
+                navBtn.classList.add('bg-white', 'text-gray-900', 'shadow-sm');
+                navBtn.classList.remove('text-gray-600');
+            }
+
+            // Trigger Yandex Maps resize recalculation if switching to map tab
+            if (tabId === 'map' && window.mapInstance) {
+                setTimeout(() => {
+                    window.mapInstance.container.fitToViewport();
+                }, 100);
+            }
+        }
+
+        function toggleMobileMenu() {
+            const menu = document.getElementById('mobileMenu');
+            menu.classList.toggle('hidden');
+        }
+
+        // Custom Modal helper
+        function showModal(title, text, iconClass = "fa-solid fa-triangle-exclamation") {
+            document.getElementById('modalTitle').innerText = title;
+            document.getElementById('modalText').innerText = text;
+            document.getElementById('modalIcon').innerHTML = `<i class="${iconClass}"></i>`;
+            document.getElementById('customModal').classList.remove('hidden');
+            document.getElementById('customModal').classList.add('flex');
+        }
+
+        function closeModal() {
+            document.getElementById('customModal').classList.add('hidden');
+            document.getElementById('customModal').classList.remove('flex');
+        }
+
+        // --- Tasting Journal Storage Logic ---
+        function getJournalEntries() {
+            return JSON.parse(localStorage.getItem('innowine_journal_entries') || '[]');
+        }
+
+        function saveJournalEntries(entries) {
+            localStorage.setItem('innowine_journal_entries', JSON.stringify(entries));
+        }
+
+        function renderJournal() {
+            const entries = getJournalEntries();
+            const grid = document.getElementById('journalGrid');
+            const empty = document.getElementById('journalEmpty');
+            grid.innerHTML = '';
+
+            if (entries.length === 0) {
+                empty.classList.remove('hidden');
+                grid.classList.add('hidden');
+                return;
+            }
+
+            empty.classList.add('hidden');
+            grid.classList.remove('hidden');
+
+            entries.forEach(item => {
+                const card = document.createElement('div');
+                card.className = "bg-white rounded-3xl p-6 shadow-sm border border-gray-100 flex flex-col justify-between space-y-4 relative overflow-hidden group";
+
+                const starsHtml = Array.from({ length: 5 }, (_, i) => 
+                    `<i class="${i < item.rating ? 'fa-solid text-amber-400' : 'fa-regular text-gray-300'} fa-star"></i>`
+                ).join('');
+
+                card.innerHTML = `
+                    <div class="space-y-3">
+                        ${item.photo ? `<div class="w-full h-48 rounded-2xl overflow-hidden bg-gray-100 mb-3"><img src="${item.photo}" class="w-full h-full object-cover"></div>` : ''}
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <span class="text-xs font-semibold text-wine-600 bg-wine-50 px-2.5 py-1 rounded-full">${item.type} ${item.year ? '• ' + item.year : ''}</span>
+                                <h3 class="text-xl font-bold text-gray-900 mt-2">${item.name}</h3>
+                            </div>
+                            <button onclick="deleteJournalEntry('${item.id}')" class="text-gray-400 hover:text-red-500 transition p-1 text-sm">
+                                <i class="fa-solid fa-trash"></i>
+                            </button>
+                        </div>
+                        <div class="flex items-center gap-1 text-sm">${starsHtml}</div>
+                        ${item.note ? `<p class="text-gray-600 text-sm leading-relaxed">${item.note}</p>` : ''}
+
+                        <!-- Flavor Wheel Parameters -->
+                        <div class="bg-gray-50 p-3 rounded-xl grid grid-cols-2 gap-2 text-xs text-gray-600">
+                            <div>Кислотность: <b class="text-gray-900">${item.acidity || 0}/5</b></div>
+                            <div>Танины: <b class="text-gray-900">${item.tannins || 0}/5</b></div>
+                            <div>Сладость: <b class="text-gray-900">${item.sweetness || 0}/5</b></div>
+                            <div>Тело: <b class="text-gray-900">${item.body || 0}/5</b></div>
+                        </div>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function openJournalModal() {
+            document.getElementById('journalForm').reset();
+            document.getElementById('entryId').value = '';
+            setRating(0);
+            ['acidity', 'tannins', 'sweetness', 'body'].forEach(attr => {
+                document.getElementById(`val-${attr}`).innerText = '0';
+            });
+            document.getElementById('journalModal').classList.remove('hidden');
+            document.getElementById('journalModal').classList.add('flex');
+        }
+
+        function closeJournalModal() {
+            document.getElementById('journalModal').classList.add('hidden');
+            document.getElementById('journalModal').classList.remove('flex');
+        }
+
+        function setRating(val) {
+            document.getElementById('wineRating').value = val;
+            const stars = document.getElementById('starRatingContainer').children;
+            for (let i = 0; i < stars.length; i++) {
+                if (i < val) {
+                    stars[i].className = 'fa-solid fa-star';
+                } else {
+                    stars[i].className = 'fa-regular fa-star';
+                }
+            }
+        }
+
+        function saveJournalEntry(e) {
+            e.preventDefault();
+            const photoInput = document.getElementById('winePhoto');
+
+            const saveProcess = (photoBase64 = '') => {
+                const entry = {
+                    id: Date.now().toString(),
+                    name: document.getElementById('wineName').value,
+                    type: document.getElementById('wineType').value,
+                    year: document.getElementById('wineYear').value,
+                    rating: parseInt(document.getElementById('wineRating').value) || 0,
+                    acidity: document.getElementById('wheelAcidity').value,
+                    tannins: document.getElementById('wheelTannins').value,
+                    sweetness: document.getElementById('wheelSweetness').value,
+                    body: document.getElementById('wheelBody').value,
+                    note: document.getElementById('wineNote').value,
+                    photo: photoBase64
+                };
+
+                const entries = getJournalEntries();
+                entries.unshift(entry);
+                saveJournalEntries(entries);
+                renderJournal();
+                closeJournalModal();
+            };
+
+            if (photoInput.files && photoInput.files[0]) {
+                const reader = new FileReader();
+                reader.onload = (event) => saveProcess(event.target.result);
+                reader.readAsDataURL(photoInput.files[0]);
+            } else {
+                saveProcess();
+            }
+        }
+
+        function deleteJournalEntry(id) {
+            let entries = getJournalEntries();
+            entries = entries.filter(item => item.id !== id);
+            saveJournalEntries(entries);
+            renderJournal();
+        }
+
+        // --- Wine Map & Wineries Data & Regions ---
+        function initMapAndWineries() {
+            ymaps.ready(() => {
+                const map = new ymaps.Map('map', {
+                    center: [47.0, 15.0],
+                    zoom: 4,
+                    controls: ['zoomControl', 'fullscreenControl']
+                }, {
+                    restrictMapArea: [
+                        [-85.0, -179.9],
+                        [85.0, 179.9]
+                    ],
+                    minZoom: 2,
+                    maxZoom: 16
+                });
+                window.mapInstance = map;
+
+                // Draw Regions (Polygons) with High Visibility & Clear borders
+                window.regionPolygonsList = [];
+                wineRegionsData.forEach(reg => {
+                    const polygon = new ymaps.Polygon([reg.coords], {
+                        hintContent: `Винный регион: ${reg.name}`,
+                        balloonContent: `<b style="color: ${reg.color}">${reg.name}</b><br>Границы винодельческого региона.`
+                    }, {
+                        fillColor: reg.color,
+                        fillOpacity: 0.35,
+                        strokeColor: reg.color,
+                        strokeWidth: 3.5,
+                        strokeOpacity: 0.95
+                    });
+                    map.geoObjects.add(polygon);
+                    window.regionPolygonsList.push({ data: reg, polygon });
+                });
+
+                // Add Wineries Placemarks
+                placemarksList = [];
+                wineriesData.forEach((w, index) => {
+                    const placemark = new ymaps.Placemark([w.lat, w.lng], {
+                        balloonContentHeader: `<b style="color: #6b152c; font-size: 14px;">${w.name}</b>`,
+                        balloonContentBody: `<p style="font-size: 13px; color: #4b5563; margin-top: 4px;">${w.desc}</p><span style="font-size:11px; color:#821d37; font-weight:600;">${w.region}</span>`,
+                        hintContent: w.name
+                    }, {
+                        preset: 'islands#wineIcon',
+                        iconColor: '#821d37'
+                    });
+
+                    map.geoObjects.add(placemark);
+                    placemarksList.push({ data: w, placemark });
+                });
+
+                renderSearchHistory();
+                filterWineries();
+            });
+        }
+
+        // --- Search History Helpers ---
+        function getSearchHistory() {
+            return JSON.parse(localStorage.getItem('innowine_search_history') || '[]');
+        }
+
+        function saveSearchQuery(query) {
+            if (!query || query.trim().length < 2) return;
+            let history = getSearchHistory();
+            const cleanQuery = query.trim();
+            history = history.filter(q => q.toLowerCase() !== cleanQuery.toLowerCase());
+            history.unshift(cleanQuery);
+            if (history.length > 8) history.pop();
+            localStorage.setItem('innowine_search_history', JSON.stringify(history));
+            renderSearchHistory();
+        }
+
+        function renderSearchHistory() {
+            const history = getSearchHistory();
+            const container = document.getElementById('searchHistoryContainer');
+            const chips = document.getElementById('historyChips');
+            chips.innerHTML = '';
+
+            if (history.length === 0) {
+                container.classList.add('hidden');
+                container.classList.remove('flex');
+                return;
+            }
+
+            container.classList.remove('hidden');
+            container.classList.add('flex');
+
+            history.forEach(q => {
+                const btn = document.createElement('button');
+                btn.className = "text-xs font-semibold px-3 py-1 bg-white hover:bg-wine-50 text-wine-700 border border-gray-200 rounded-full shadow-sm transition flex items-center gap-1";
+                btn.innerHTML = `<span>${q}</span>`;
+                btn.onclick = () => {
+                    document.getElementById('mapSearchInput').value = q;
+                    filterWineries();
+                };
+                chips.appendChild(btn);
+            });
+        }
+
+        function clearSearchHistory() {
+            localStorage.removeItem('innowine_search_history');
+            renderSearchHistory();
+            filterWineries();
+        }
+
+        function handleSearchKeyDown(e) {
+            if (e.key === 'Enter') {
+                const query = document.getElementById('mapSearchInput').value;
+                saveSearchQuery(query);
+            }
+        }
+
+        function renderWineryCards(list, query) {
+            const container = document.getElementById('wineriesList');
+            container.innerHTML = '';
+
+            // If user hasn't searched anything yet
+            if (!query || query.trim().length === 0) {
+                const history = getSearchHistory();
+                let historyText = '';
+                if (history.length > 0) {
+                    historyText = `
+                        <p class="text-xs text-gray-400 mt-3">Ваши недавние запросы:</p>
+                        <div class="flex flex-wrap justify-center gap-2 mt-2">
+                            ${history.map(h => `<button onclick="document.getElementById('mapSearchInput').value='${h}'; filterWineries();" class="text-xs px-3 py-1 bg-wine-50 text-wine-700 rounded-full font-medium hover:bg-wine-100 transition">${h}</button>`).join('')}
+                        </div>
+                    `;
+                }
+
+                container.innerHTML = `
+                    <div class="col-span-full text-center py-16 bg-white rounded-3xl border border-gray-100 p-8 shadow-sm">
+                        <div class="w-16 h-16 bg-wine-50 text-wine-600 rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl">
+                            <i class="fa-solid fa-magnifying-glass-location"></i>
+                        </div>
+                        <h3 class="text-lg font-bold text-gray-900 mb-1">Поиск по винной карте</h3>
+                        <p class="text-gray-500 text-sm max-w-md mx-auto">Введите название винодельни, региона или страны в строку поиска выше, чтобы отобразить карточки результатов.</p>
+                        ${historyText}
+                    </div>
+                `;
+                return;
+            }
+
+            // If user searched, but nothing was found
+            if (list.length === 0) {
+                container.innerHTML = `
+                    <div class="col-span-full text-center py-16 bg-white rounded-3xl border border-gray-100 p-8 shadow-sm">
+                        <div class="w-16 h-16 bg-gray-100 text-gray-400 rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl">
+                            <i class="fa-solid fa-wine-glass-slash"></i>
+                        </div>
+                        <h3 class="text-lg font-bold text-gray-900 mb-1">Ничего не найдено</h3>
+                        <p class="text-gray-500 text-sm">По запросу «<b>${query}</b>» результатов не найдено. Попробуйте изменить запрос.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // Render searched wineries
+            list.forEach(w => {
+                const card = document.createElement('div');
+                card.className = "bg-white rounded-3xl p-6 shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 flex flex-col justify-between cursor-pointer";
+                card.onclick = () => {
+                    if (window.mapInstance) {
+                        window.mapInstance.setCenter([w.lat, w.lng], 10, { checkZoomRange: true, duration: 500 });
+                        const item = placemarksList.find(p => p.data.name === w.name);
+                        if (item) item.placemark.balloon.open();
+                        window.scrollTo({ top: 250, behavior: 'smooth' });
+                    }
+                };
+                card.innerHTML = `
+                    <div>
+                        <span class="text-xs font-semibold text-wine-600 bg-wine-50 px-3 py-1 rounded-full inline-block mb-3">${w.region}</span>
+                        <h3 class="text-lg font-bold text-gray-900 mb-2">${w.name}</h3>
+                        <p class="text-gray-500 text-sm leading-relaxed">${w.desc}</p>
+                    </div>
+                    <div class="mt-4 pt-4 border-t border-gray-100 flex items-center justify-between text-xs font-semibold text-wine-700">
+                        <span>Показать на карте</span>
+                        <i class="fa-solid fa-location-arrow"></i>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function filterWineries() {
+            const rawQuery = document.getElementById('mapSearchInput').value.trim();
+            const query = rawQuery.toLowerCase();
+            const normQuery = normalizeSearchString(query);
+
+            // Filter Wineries
+            const filteredWineries = wineriesData.filter(w => {
+                const nameNorm = normalizeSearchString(w.name);
+                const regionNorm = normalizeSearchString(w.region);
+                const descNorm = normalizeSearchString(w.desc);
+
+                return nameNorm.includes(query) || 
+                       regionNorm.includes(query) ||
+                       descNorm.includes(query) ||
+                       nameNorm.includes(normQuery) ||
+                       regionNorm.includes(normQuery);
+            });
+
+            // Filter Regions
+            const filteredRegions = wineRegionsData.filter(r => {
+                const regionNameNorm = normalizeSearchString(r.name);
+                return regionNameNorm.includes(query) || regionNameNorm.includes(normQuery);
+            });
+            
+            // Render filtered searched wineries
+            renderWineryCards(filteredWineries, rawQuery);
+
+            // Show/Hide Map Placemarks based on search
+            placemarksList.forEach(item => {
+                const match = query.length === 0 || filteredWineries.some(f => f.name === item.data.name);
+                item.placemark.options.set('visible', match);
+            });
+
+            // Highlight & Filter Region Polygons based on search
+            if (window.regionPolygonsList) {
+                window.regionPolygonsList.forEach(item => {
+                    const isMatch = query.length === 0 || filteredRegions.some(r => r.name === item.data.name);
+                    item.polygon.options.set('visible', isMatch);
+                    if (query.length > 0 && isMatch) {
+                        item.polygon.options.set('fillOpacity', 0.5);
+                        item.polygon.options.set('strokeWidth', 4);
+                    } else {
+                        item.polygon.options.set('fillOpacity', 0.25);
+                        item.polygon.options.set('strokeWidth', 2);
+                    }
+                });
+            }
+
+            // Focus map logic (Prioritize precise matching region or winery)
+            if (query.length > 0 && window.mapInstance) {
+                if (filteredRegions.length > 0) {
+                    const matchedReg = filteredRegions[0];
+                    window.mapInstance.setBounds(matchedReg.polygon ? matchedReg.polygon.geometry.getBounds() : matchedReg.coords, {
+                        checkZoomRange: true,
+                        zoomMargin: 40,
+                        duration: 500
+                    }).then(() => {
+                        if (matchedReg.polygon) matchedReg.polygon.balloon.open();
+                    });
+                } else if (filteredWineries.length > 0) {
+                    window.mapInstance.setCenter(
+                        [filteredWineries[0].lat, filteredWineries[0].lng], 
+                        filteredWineries.length === 1 ? 10 : (query.length > 2 ? 6 : 4), 
+                        { duration: 400 }
+                    );
+                }
+            }
+        }
+    </script>
+</body>
+</html>
